@@ -265,6 +265,130 @@
     padding:1px 4px;
     border-radius:4px;
   }
+
+  .tab:disabled, .draw-btn:disabled{
+    opacity:0.55;
+    cursor:not-allowed;
+  }
+
+  /* AI thinking panel */
+  .ai-wrap{
+    width:100%;
+    max-width:320px;
+    display:none;
+  }
+  .ai-wrap.show{ display:block; }
+  .ai-panel{
+    background:var(--ink);
+    color:#CFE8CB;
+    border-radius:14px;
+    padding:22px 20px 24px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 18px 34px -14px rgba(43,43,40,0.45);
+  }
+  .ai-panel::before{
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    height:45%;
+    background:linear-gradient(180deg, rgba(207,232,203,0.14), transparent);
+    animation:ai-scan 1.7s linear infinite;
+    pointer-events:none;
+  }
+  @keyframes ai-scan{
+    0%{ top:-45%; }
+    100%{ top:100%; }
+  }
+  .ai-avatar{
+    position:relative;
+    width:52px;
+    height:52px;
+    margin:0 auto 14px;
+  }
+  .ai-ring{
+    position:absolute;
+    inset:0;
+    border:2px solid rgba(92,240,107,0.25);
+    border-top-color:#5CF06B;
+    border-radius:50%;
+    animation:ai-spin 0.9s linear infinite;
+  }
+  .ai-emoji{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+  }
+  @keyframes ai-spin{ to{ transform:rotate(360deg); } }
+  .ai-head{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    font-size:11px;
+    letter-spacing:0.1em;
+    color:#9FD6A0;
+    margin-bottom:16px;
+    text-align:center;
+  }
+  .ai-orb{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#5CF06B;
+    box-shadow:0 0 8px 2px rgba(92,240,107,0.7);
+    animation:ai-pulse 1s ease-in-out infinite;
+    flex:none;
+  }
+  @keyframes ai-pulse{
+    0%,100%{ opacity:1; transform:scale(1); }
+    50%{ opacity:.4; transform:scale(0.7); }
+  }
+  .ai-log{
+    min-height:150px;
+    font-size:12.5px;
+    line-height:2;
+  }
+  .ai-line{
+    opacity:0;
+    transform:translateY(4px);
+    animation:ai-line-in .3s ease forwards;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .ai-line .tick{
+    color:#5CF06B;
+    width:14px;
+    flex:none;
+    text-align:center;
+  }
+  .ai-line .cursor{
+    display:inline-block;
+    width:6px;
+    height:12px;
+    background:#CFE8CB;
+    animation:ai-blink .8s steps(1) infinite;
+  }
+  @keyframes ai-line-in{ to{ opacity:1; transform:translateY(0); } }
+  @keyframes ai-blink{ 50%{ opacity:0; } }
+  .ai-progress{
+    margin-top:16px;
+    height:5px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.12);
+    overflow:hidden;
+  }
+  .ai-progress-fill{
+    height:100%;
+    width:0%;
+    background:#5CF06B;
+    border-radius:999px;
+    transition:width .3s ease;
+  }
 </style>
 </head>
 <body>
@@ -295,7 +419,20 @@
     </div>
   </div>
 
+  <div class="ai-wrap" id="aiWrap">
+    <div class="ai-panel">
+      <div class="ai-avatar">
+        <div class="ai-ring"></div>
+        <div class="ai-emoji">🧠</div>
+      </div>
+      <div class="ai-head"><span class="ai-orb"></span>모모카AI 추론 엔진 가동 중</div>
+      <div class="ai-log" id="aiLog"></div>
+      <div class="ai-progress"><div class="ai-progress-fill" id="aiProgressFill"></div></div>
+    </div>
+  </div>
+
   <div class="placeholder" id="placeholder">버튼을 눌러 오늘의 메뉴를 뽑아보세요.</div>
+  <div class="placeholder" id="placeholder">고지능 모모카AI 봇이 사용자의 빅데이터와 머신러닝 기반으로 최적의 메뉴를 추천 합니다.</div>
 
   <div class="share-row" style="display:none;" id="shareRow">
     <button class="kakao-btn" id="kakaoBtn">
@@ -345,7 +482,8 @@
         { name: "부대찌개", emoji: "🍲", tag: "한식 · 얼큰", image: "" },
         { name: "초밥", emoji: "🍣", tag: "일식 · 깔끔", image: "" },
         { name: "타코", emoji: "🌮", tag: "멕시칸 · 색다름", image: "" },
-        { name: "민트초코김치찌개", emoji: "🍲🍫", tag: "괴식 · 도전", image: "" }
+        { name: "민트초코김치", emoji: "🌮", tag: "맛잘알 · 한국인의맛", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRjvxpQn_1djNQ3WHtKgr5K2u7Yu3JSU16xFq1x4fPpnUl0211yJUda2Ik&s=10" },
+        { name: "민트초코김치찌개", emoji: "🍲🍫", tag: "맛잘알 · 트랜드", image: "https://mblogthumb-phinf.pstatic.net/MjAyMjA2MDhfMTU0/MDAxNjU0NjI3Nzc4NDMz.5SN6RgLBrvgz4CV38RyhNh3qxELrXywy_v140piu76og.LKI-lhnPAF43AG-VvethdT72Q3GGPkzATonQ6t4gsQgg.JPEG.mlele/%EB%AF%BC%EC%B4%88_%EA%B9%80%EC%B9%98.jpg?type=w800" }
       ],
       dinner: [
         { name: "삼겹살", emoji: "🥓", tag: "한식 · 회식", image: "" },
@@ -358,7 +496,7 @@
         { name: "곰탕", emoji: "🍲", tag: "한식 · 든든", image: "" },
         { name: "우삼겹덮밥", emoji: "🍚", tag: "한식 · 든든", image: "" },
         { name: "피자", emoji: "🍕", tag: "양식 · 야식", image: "" },
-        { name: "딸기 피자", emoji: "🍕🍓", tag: "괴식 · 도전", image: "" },
+        { name: "딸기 피자", emoji: "🍕🍓", tag: "상큼 · 다이어트", image: "https://static.wtable.co.kr/image/production/service/recipe/129/52acec63-f1ad-48da-bfa4-88a8d12b7cad.jpg" },
         { name: "라멘", emoji: "🍜", tag: "일식 · 따뜻", image: "" },
         { name: "스테이크", emoji: "🥩", tag: "양식 · 특별한 날", image: "" },
         { name: "떡볶이", emoji: "🌶️", tag: "분식 · 매콤", image: "" },
@@ -366,7 +504,9 @@
         { name: "보쌈", emoji: "🥬", tag: "한식 · 든든", image: "" },
         { name: "칼국수", emoji: "🍜", tag: "한식 · 따뜻", image: "" },
         { name: "장어구이", emoji: "🐟", tag: "한식 · 보양식", image: "" },
-        { name: "만두전골", emoji: "🥟", tag: "한식 · 따뜻", image: "" }
+        { name: "만두전골", emoji: "🥟", tag: "한식 · 따뜻", image: "" },
+        { name: "민트초코김치", emoji: "🌮", tag: "맛잘알 · 한국인의맛", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRjvxpQn_1djNQ3WHtKgr5K2u7Yu3JSU16xFq1x4fPpnUl0211yJUda2Ik&s=10" },
+        { name: "민트초코김치찌개", emoji: "🍲🍫", tag: "맛잘알 · 트랜드", image: "https://mblogthumb-phinf.pstatic.net/MjAyMjA2MDhfMTU0/MDAxNjU0NjI3Nzc4NDMz.5SN6RgLBrvgz4CV38RyhNh3qxELrXywy_v140piu76og.LKI-lhnPAF43AG-VvethdT72Q3GGPkzATonQ6t4gsQgg.JPEG.mlele/%EB%AF%BC%EC%B4%88_%EA%B9%80%EC%B9%98.jpg?type=w800" }
       ]
     };
 
@@ -379,6 +519,9 @@
     const placeholder = document.getElementById("placeholder");
     const shareRow = document.getElementById("shareRow");
     const toast = document.getElementById("toast");
+    const aiWrap = document.getElementById("aiWrap");
+    const aiLog = document.getElementById("aiLog");
+    const aiProgressFill = document.getElementById("aiProgressFill");
 
     tabs.forEach(t => t.addEventListener("click", () => {
       tabs.forEach(x => x.classList.remove("active"));
@@ -390,6 +533,43 @@
       toast.textContent = msg;
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    async function runThinking(){
+      const mealLabel = meal === "lunch" ? "점심" : "저녁";
+      const list = MENUS[meal];
+      const steps = [
+        "사용자 취향 데이터 로딩 중",
+        "최근 식사 기록 학습 중",
+        `${mealLabel} 메뉴 후보 ${list.length}개 스캔 중`,
+        "선호도 가중치 계산 중",
+        "최적의 메뉴 추론 중"
+      ];
+
+      aiLog.innerHTML = "";
+      aiProgressFill.style.width = "0%";
+      aiWrap.classList.add("show");
+
+      for (let i = 0; i < steps.length; i++){
+        const line = document.createElement("div");
+        line.className = "ai-line";
+        line.innerHTML = `<span class="tick">···</span><span>${steps[i]}</span><span class="cursor"></span>`;
+        aiLog.appendChild(line);
+
+        await sleep(320 + Math.random() * 260);
+
+        line.querySelector(".tick").textContent = "✓";
+        const cursor = line.querySelector(".cursor");
+        if (cursor) cursor.remove();
+        aiProgressFill.style.width = Math.round(((i + 1) / steps.length) * 100) + "%";
+
+        await sleep(120);
+      }
+
+      await sleep(350);
+      aiWrap.classList.remove("show");
     }
 
     function draw(){
@@ -422,7 +602,21 @@
       shareRow.style.display = "flex";
     }
 
-    drawBtn.addEventListener("click", draw);
+    drawBtn.addEventListener("click", async () => {
+      if (drawBtn.disabled) return;
+
+      drawBtn.disabled = true;
+      tabs.forEach(t => t.disabled = true);
+      shareRow.style.display = "none";
+      receipt.classList.remove("show");
+      placeholder.style.display = "none";
+
+      await runThinking();
+      draw();
+
+      drawBtn.disabled = false;
+      tabs.forEach(t => t.disabled = false);
+    });
 
     document.getElementById("kakaoBtn").addEventListener("click", () => {
       if (!currentPick) return;
