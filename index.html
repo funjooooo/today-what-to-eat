@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘 뭐 먹지?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBF6EC;
+    --paper-dark:#F1E9D8;
+    --ink:#2B2B28;
+    --ink-soft:#6b6459;
+    --stamp:#C23B2E;
+    --accent:#E3A72E;
+    --line:#D8CFBC;
+    --kakao:#FEE500;
+    --kakao-ink:#391B1B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(227,167,46,0.10), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(194,59,46,0.08), transparent 45%),
+      var(--paper);
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 16px 60px;
+  }
+
+  .eyebrow{
+    font-size:11px;
+    letter-spacing:0.28em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Gowun Batang', serif;
+    font-weight:700;
+    font-size:30px;
+    margin:0 0 26px;
+    letter-spacing:-0.01em;
+  }
+
+  .tabs{
+    display:flex;
+    background:var(--paper-dark);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:4px;
+    margin-bottom:22px;
+  }
+  .tab{
+    border:none;
+    background:transparent;
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:14px;
+    padding:9px 22px;
+    border-radius:999px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    transition:all .25s ease;
+  }
+  .tab.active{
+    background:var(--ink);
+    color:var(--paper);
+  }
+
+  .draw-btn{
+    font-family:'Gowun Batang', serif;
+    font-weight:700;
+    font-size:19px;
+    padding:16px 46px;
+    border-radius:999px;
+    border:2px solid var(--ink);
+    background:var(--accent);
+    color:var(--ink);
+    cursor:pointer;
+    box-shadow:4px 4px 0 var(--ink);
+    transition:transform .12s ease, box-shadow .12s ease;
+    margin-bottom:34px;
+  }
+  .draw-btn:active{
+    transform:translate(4px,4px);
+    box-shadow:0 0 0 var(--ink);
+  }
+
+  /* Receipt */
+  .receipt-wrap{
+    perspective:1200px;
+    width:100%;
+    max-width:320px;
+    min-height:20px;
+  }
+  .receipt{
+    background:#fff;
+    width:100%;
+    box-shadow:0 18px 34px -14px rgba(43,43,40,0.35);
+    position:relative;
+    padding:26px 22px 30px;
+    transform-origin:top center;
+    animation:print .5s cubic-bezier(.2,.9,.3,1.2);
+    clip-path: polygon(
+      0% 0%, 100% 0%, 100% 97%,
+      95% 100%, 90% 97%, 85% 100%, 80% 97%, 75% 100%, 70% 97%, 65% 100%,
+      60% 97%, 55% 100%, 50% 97%, 45% 100%, 40% 97%, 35% 100%, 30% 97%,
+      25% 100%, 20% 97%, 15% 100%, 10% 97%, 5% 100%, 0% 97%
+    );
+    display:none;
+  }
+  .receipt.show{display:block;}
+  @keyframes print{
+    0%{transform:scaleY(0.05) translateY(-10px); opacity:0;}
+    60%{opacity:1;}
+    100%{transform:scaleY(1) translateY(0); opacity:1;}
+  }
+
+  .receipt-head{
+    text-align:center;
+    border-bottom:1px dashed var(--line);
+    padding-bottom:12px;
+    margin-bottom:14px;
+  }
+  .receipt-head .shop{
+    font-family:'Gowun Batang', serif;
+    font-weight:700;
+    font-size:15px;
+  }
+  .receipt-head .sub{
+    font-size:10px;
+    color:var(--ink-soft);
+    margin-top:3px;
+    letter-spacing:0.05em;
+  }
+
+  .emoji-plate{
+    font-size:64px;
+    text-align:center;
+    line-height:1;
+    margin:8px 0 14px;
+  }
+
+  .menu-photo{
+    display:block;
+    width:120px;
+    height:120px;
+    object-fit:cover;
+    border-radius:50%;
+    border:3px solid var(--ink);
+    margin:8px auto 14px;
+  }
+
+  .menu-name{
+    text-align:center;
+    font-family:'Gowun Batang', serif;
+    font-weight:700;
+    font-size:24px;
+    margin-bottom:4px;
+  }
+  .menu-tag{
+    text-align:center;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-bottom:16px;
+  }
+
+  .divider{
+    border-bottom:1px dashed var(--line);
+    margin:14px 0;
+  }
+
+  .stamp{
+    position:absolute;
+    right:18px;
+    top:52%;
+    width:70px;
+    height:70px;
+    border:3px solid var(--stamp);
+    color:var(--stamp);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Gowun Batang', serif;
+    font-weight:700;
+    font-size:15px;
+    transform:rotate(-16deg);
+    opacity:0.85;
+    mix-blend-mode:multiply;
+    text-align:center;
+    line-height:1.1;
+  }
+
+  .placeholder{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13px;
+    padding:30px 10px;
+    max-width:280px;
+  }
+
+  .share-row{
+    margin-top:26px;
+    display:flex;
+    gap:10px;
+    width:100%;
+    max-width:320px;
+  }
+  .kakao-btn{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    background:var(--kakao);
+    color:var(--kakao-ink);
+    border:none;
+    border-radius:10px;
+    padding:13px 10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    box-shadow:2px 2px 0 rgba(43,43,40,0.15);
+  }
+  .kakao-btn:disabled{opacity:0.55; cursor:not-allowed;}
+  .kakao-btn svg{width:18px; height:18px;}
+
+  .toast{
+    position:fixed;
+    bottom:26px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink);
+    color:var(--paper);
+    font-size:13px;
+    padding:10px 18px;
+    border-radius:8px;
+    opacity:0;
+    pointer-events:none;
+    transition:all .25s ease;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .setup-note{
+    margin-top:34px;
+    max-width:320px;
+    font-size:11px;
+    color:var(--ink-soft);
+    text-align:center;
+    line-height:1.6;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  .setup-note code{
+    background:var(--paper-dark);
+    padding:1px 4px;
+    border-radius:4px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="eyebrow">모모카 메뉴 봇 - 오늘의 메뉴 뽑기</div>
+  <h1>점매추 / 저매추</h1>
+
+  <div class="tabs">
+    <button class="tab active" data-meal="lunch">점심</button>
+    <button class="tab" data-meal="dinner">저녁</button>
+  </div>
+
+  <button class="draw-btn" id="drawBtn">🎰 뽑기</button>
+
+  <div class="receipt-wrap">
+    <div class="receipt" id="receipt">
+      <div class="receipt-head">
+        <div class="shop">오늘 뭐 먹지 식당</div>
+        <div class="sub" id="dateLine">-</div>
+      </div>
+      <img class="menu-photo" id="menuPhoto" style="display:none;" alt="">
+      <div class="emoji-plate" id="menuEmoji">🍚</div>
+      <div class="menu-name" id="menuName">메뉴 이름</div>
+      <div class="menu-tag" id="menuTag">점심 · 한식</div>
+      <div class="divider"></div>
+      <div style="font-size:11px; color:var(--ink-soft); text-align:center;">이 메뉴, 오늘의 정답입니다.</div>
+      <div class="stamp" id="stamp">오늘의<br>선택</div>
+    </div>
+  </div>
+
+  <div class="placeholder" id="placeholder">버튼을 눌러 오늘의 메뉴를 뽑아보세요.</div>
+
+  <div class="share-row" style="display:none;" id="shareRow">
+    <button class="kakao-btn" id="kakaoBtn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.5 2 10.8c0 2.7 1.8 5.1 4.5 6.5-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.7.1 1.4.1 2.2.1 5.5 0 10-3.5 10-7.8S17.5 3 12 3z"/></svg>
+      카카오톡 공유
+    </button>
+  </div>
+
+  <div class="setup-note">
+    카카오톡 공유를 실제로 쓰려면 카카오 디벨로퍼스에서 발급받은 JavaScript 키를 코드 상단 <code>KAKAO_JS_KEY</code>에 넣고, 앱 설정에서 이 페이지 도메인을 플랫폼으로 등록해야 해요. 키가 없으면 대신 링크가 복사돼요.<br><br>
+    메뉴 사진을 넣으려면 <code>MENUS</code> 안 해당 메뉴의 <code>image</code> 값에 이미지 URL을 넣으세요. 비워두면 이모지로 표시돼요.
+  </div>
+
+  <div class="toast" id="toast">링크가 복사됐어요</div>
+
+  <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
+  <script>
+    // ── 여기에 카카오 디벨로퍼스에서 발급받은 JavaScript 키를 넣으세요 ──
+    const KAKAO_JS_KEY = "";
+    // ────────────────────────────────────────────────────────────
+
+    let kakaoReady = false;
+    try {
+      if (KAKAO_JS_KEY && window.Kakao && !Kakao.isInitialized()) {
+        Kakao.init(KAKAO_JS_KEY);
+        kakaoReady = Kakao.isInitialized();
+      }
+    } catch (e) { kakaoReady = false; }
+
+    const MENUS = {
+      lunch: [
+        { name: "김치찌개", emoji: "🍲", tag: "한식 · 든든", image: "" },
+        { name: "된장찌개", emoji: "🍲", tag: "한식 · 집밥", image: "" },
+        { name: "제육볶음", emoji: "🥘", tag: "한식 · 매콤", image: "" },
+        { name: "비빔밥", emoji: "🍚", tag: "한식 · 든든", image: "" },
+        { name: "돈까스", emoji: "🍱", tag: "일식 · 바삭", image: "" },
+        { name: "규동", emoji: "🍛", tag: "일식 · 든든", image: "" },
+        { name: "가락국수", emoji: "🍜", tag: "분식 · 따뜻", image: "" },
+        { name: "짜장면", emoji: "🍜", tag: "중식 · 든든", image: "" },
+        { name: "짬뽕", emoji: "🍜", tag: "중식 · 얼큰", image: "" },
+        { name: "샌드위치", emoji: "🥪", tag: "가벼운 한 끼", image: "" },
+        { name: "김밥", emoji: "🍙", tag: "분식 · 간단", image: "" },
+        { name: "쌀국수", emoji: "🍲", tag: "베트남식 · 깔끔", image: "" },
+        { name: "냉면", emoji: "🍜", tag: "한식 · 시원", image: "" },
+        { name: "샐러드 볼", emoji: "🥗", tag: "가벼운 한 끼", image: "" },
+        { name: "파스타", emoji: "🍝", tag: "양식 · 든든", image: "" },
+        { name: "부대찌개", emoji: "🍲", tag: "한식 · 얼큰", image: "" },
+        { name: "초밥", emoji: "🍣", tag: "일식 · 깔끔", image: "" },
+        { name: "타코", emoji: "🌮", tag: "멕시칸 · 색다름", image: "" },
+        { name: "민트초코김치찌개", emoji: "🍲🍫", tag: "괴식 · 도전", image: "" }
+      ],
+      dinner: [
+        { name: "삼겹살", emoji: "🥓", tag: "한식 · 회식", image: "" },
+        { name: "치킨", emoji: "🍗", tag: "야식 · 국룰", image: "" },
+        { name: "곱창", emoji: "🍢", tag: "한식 · 술안주", image: "" },
+        { name: "회", emoji: "🍣", tag: "한식 · 특별한 날", image: "" },
+        { name: "족발", emoji: "🍖", tag: "한식 · 야식", image: "" },
+        { name: "마라탕", emoji: "🌶️", tag: "중식 · 얼큰", image: "" },
+        { name: "훠궈", emoji: "🍲", tag: "중식 · 얼큰", image: "" },
+        { name: "곰탕", emoji: "🍲", tag: "한식 · 든든", image: "" },
+        { name: "우삼겹덮밥", emoji: "🍚", tag: "한식 · 든든", image: "" },
+        { name: "피자", emoji: "🍕", tag: "양식 · 야식", image: "" },
+        { name: "딸기 피자", emoji: "🍕🍓", tag: "괴식 · 도전", image: "" },
+        { name: "라멘", emoji: "🍜", tag: "일식 · 따뜻", image: "" },
+        { name: "스테이크", emoji: "🥩", tag: "양식 · 특별한 날", image: "" },
+        { name: "떡볶이", emoji: "🌶️", tag: "분식 · 매콤", image: "" },
+        { name: "닭갈비", emoji: "🍗", tag: "한식 · 매콤", image: "" },
+        { name: "보쌈", emoji: "🥬", tag: "한식 · 든든", image: "" },
+        { name: "칼국수", emoji: "🍜", tag: "한식 · 따뜻", image: "" },
+        { name: "장어구이", emoji: "🐟", tag: "한식 · 보양식", image: "" },
+        { name: "만두전골", emoji: "🥟", tag: "한식 · 따뜻", image: "" }
+      ]
+    };
+
+    let meal = "lunch";
+    let currentPick = null;
+
+    const tabs = document.querySelectorAll(".tab");
+    const drawBtn = document.getElementById("drawBtn");
+    const receipt = document.getElementById("receipt");
+    const placeholder = document.getElementById("placeholder");
+    const shareRow = document.getElementById("shareRow");
+    const toast = document.getElementById("toast");
+
+    tabs.forEach(t => t.addEventListener("click", () => {
+      tabs.forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      meal = t.dataset.meal;
+    }));
+
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function draw(){
+      const list = MENUS[meal];
+      const pick = list[Math.floor(Math.random() * list.length)];
+      currentPick = pick;
+
+      document.getElementById("menuName").textContent = pick.name;
+      document.getElementById("menuTag").textContent = (meal === "lunch" ? "점심" : "저녁") + " · " + pick.tag;
+      document.getElementById("dateLine").textContent = new Date().toLocaleDateString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", weekday:"short" });
+
+      const photoEl = document.getElementById("menuPhoto");
+      const emojiEl = document.getElementById("menuEmoji");
+      if (pick.image) {
+        photoEl.src = pick.image;
+        photoEl.alt = pick.name;
+        photoEl.style.display = "block";
+        emojiEl.style.display = "none";
+        photoEl.onerror = () => { photoEl.style.display = "none"; emojiEl.style.display = "block"; };
+      } else {
+        photoEl.style.display = "none";
+        emojiEl.style.display = "block";
+        emojiEl.textContent = pick.emoji;
+      }
+
+      placeholder.style.display = "none";
+      receipt.classList.remove("show");
+      void receipt.offsetWidth; // restart animation
+      receipt.classList.add("show");
+      shareRow.style.display = "flex";
+    }
+
+    drawBtn.addEventListener("click", draw);
+
+    document.getElementById("kakaoBtn").addEventListener("click", () => {
+      if (!currentPick) return;
+      const mealLabel = meal === "lunch" ? "점심" : "저녁";
+      const text = `오늘 ${mealLabel} 메뉴는 "${currentPick.name}" 어때요? ${currentPick.emoji}`;
+
+      if (kakaoReady) {
+        Kakao.Share.sendDefault({
+          objectType: "feed",
+          content: {
+            title: `오늘의 ${mealLabel} 추천: ${currentPick.name}`,
+            description: text,
+            imageUrl: currentPick.image || "", // 메뉴에 image가 있으면 자동으로 쓰임
+            link: { mobileWebUrl: location.href, webUrl: location.href }
+          },
+          buttons: [{
+            title: "메뉴 뽑으러 가기",
+            link: { mobileWebUrl: location.href, webUrl: location.href }
+          }]
+        });
+      } else {
+        const shareText = text + " " + location.href;
+        if (navigator.share) {
+          navigator.share({ title: "오늘의 메뉴", text: shareText }).catch(()=>{});
+        } else {
+          navigator.clipboard.writeText(shareText).then(() => {
+            showToast("카카오 키가 없어서 링크를 복사했어요");
+          }).catch(() => {
+            showToast("카카오 키를 등록하면 공유가 가능해요");
+          });
+        }
+      }
+    });
+  </script>
+</body>
+</html>
