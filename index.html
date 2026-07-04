@@ -348,6 +348,41 @@
     cursor:not-allowed;
   }
 
+  .receipt-footer{ text-align:center; }
+  .joke-reveal-btn{
+    display:block;
+    margin:0 auto;
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:13px;
+    padding:9px 20px;
+    border-radius:999px;
+    border:2px solid var(--stamp);
+    background:var(--paper-dark);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .joke-answer{
+    text-align:center;
+    font-family:'Hi Melody', 'Gowun Batang', serif;
+    font-weight:700;
+    font-size:16px;
+    color:var(--stamp);
+    animation:print .4s ease;
+  }
+  .video-btn{
+    display:block;
+    text-align:center;
+    text-decoration:none;
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:13px;
+    padding:10px 20px;
+    border-radius:999px;
+    background:var(--stamp);
+    color:#fff;
+  }
+
   /* AI thinking panel */
   .ai-wrap{
     width:100%;
@@ -487,6 +522,7 @@
   <div class="tabs">
     <button class="tab active" data-meal="lunch">점심</button>
     <button class="tab" data-meal="dinner">저녁</button>
+    <button class="tab" data-meal="healing">힐링이 필요해</button>
   </div>
 
   <button class="draw-btn" id="drawBtn">🍑 뽑기</button>
@@ -502,7 +538,7 @@
       <div class="menu-name" id="menuName">메뉴 이름</div>
       <div class="menu-tag" id="menuTag">점심 · 한식</div>
       <div class="divider"></div>
-      <div style="font-size:11px; color:var(--ink-soft); text-align:center;">🍑 이 메뉴, 오늘의 정답입니다.</div>
+      <div class="receipt-footer" id="receiptFooter"></div>
       <div class="stamp" id="stamp">오늘의<br>선택</div>
     </div>
   </div>
@@ -599,6 +635,13 @@
         { name: "만두전골", emoji: "🥟", tag: "한식 · 따뜻", image: "" },
         { name: "민트초코김치", emoji: "🌮", tag: "맛잘알 · 한국인의맛", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRjvxpQn_1djNQ3WHtKgr5K2u7Yu3JSU16xFq1x4fPpnUl0211yJUda2Ik&s=10" },
         { name: "민트초코김치찌개", emoji: "🍲🍫", tag: "맛잘알 · 트랜드", image: "https://mblogthumb-phinf.pstatic.net/MjAyMjA2MDhfMTU0/MDAxNjU0NjI3Nzc4NDMz.5SN6RgLBrvgz4CV38RyhNh3qxELrXywy_v140piu76og.LKI-lhnPAF43AG-VvethdT72Q3GGPkzATonQ6t4gsQgg.JPEG.mlele/%EB%AF%BC%EC%B4%88_%EA%B9%80%EC%B9%98.jpg?type=w800" }
+      ],
+      // 아재개그와 영상을 여기 추가/편집하면 됩니다. type: "joke" 또는 "video"
+      healing: [
+        { type: "joke", name: "세종대왕이 엘리베이터를 못 타는 이유는?", tag: "아재개그", emoji: "🤔", answer: "만원이라서 ㅋㅋ" },
+        { type: "joke", name: "세상에서 가장 뜨거운 과일은?", tag: "아재개그", emoji: "🤔", answer: "천도복숭아" },
+        { type: "joke", name: "빵이 죽으면?", tag: "아재개그", emoji: "🤔", answer: "빵점" },
+        { type: "video", name: "웃참 실패 각인 힐링 영상", tag: "꿀잼영상", emoji: "▶️", url: "https://www.youtube.com/watch?v=c2AbasThk3A" }
       ]
     };
 
@@ -621,6 +664,25 @@
       meal = t.dataset.meal;
     }));
 
+    function mealLabel(key){
+      if (key === "dinner") return "저녁";
+      if (key === "healing") return "힐링";
+      return "점심";
+    }
+
+    function getYoutubeId(url){
+      try {
+        const u = new URL(url);
+        if (u.hostname.includes("youtu.be")) return u.pathname.slice(1);
+        return u.searchParams.get("v") || "";
+      } catch (e) { return ""; }
+    }
+
+    function getYoutubeThumbnail(url){
+      const id = getYoutubeId(url);
+      return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
+    }
+
     function showToast(msg){
       toast.textContent = msg;
       toast.classList.add("show");
@@ -630,14 +692,16 @@
     function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
 
     async function runThinking(){
-      const mealLabel = meal === "lunch" ? "점심" : "저녁";
+      const label = mealLabel(meal);
       const list = MENUS[meal];
+      const isHealing = meal === "healing";
+      const contentWord = isHealing ? "콘텐츠" : "메뉴";
       const steps = [
         "사용자 취향 데이터 로딩 중",
-        "최근 식사 기록 학습 중",
-        `${mealLabel} 메뉴 후보 ${list.length}개 스캔 중`,
+        isHealing ? "웃음 지수 분석 중" : "최근 식사 기록 학습 중",
+        `${label} ${contentWord} 후보 ${list.length}개 스캔 중`,
         "선호도 가중치 계산 중",
-        "최적의 메뉴 추론 중"
+        isHealing ? "힐링 포인트 추론 중" : "최적의 메뉴 추론 중"
       ];
 
       aiLog.innerHTML = "";
@@ -664,17 +728,44 @@
       aiWrap.classList.remove("show");
     }
 
+    function renderFooter(pick, type){
+      const footer = document.getElementById("receiptFooter");
+      if (type === "joke") {
+        footer.innerHTML =
+          '<button class="joke-reveal-btn" id="jokeRevealBtn">👀 정답 보기</button>' +
+          '<div class="joke-answer" id="jokeAnswer" style="display:none;"></div>';
+        document.getElementById("jokeAnswer").textContent = pick.answer + " 😂🤣😂";
+        document.getElementById("jokeRevealBtn").addEventListener("click", (e) => {
+          document.getElementById("jokeAnswer").style.display = "block";
+          e.currentTarget.style.display = "none";
+        });
+      } else if (type === "video") {
+        const link = document.createElement("a");
+        link.className = "video-btn";
+        link.href = pick.url;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "▶️ 영상 보러가기";
+        footer.innerHTML = "";
+        footer.appendChild(link);
+      } else {
+        footer.innerHTML = '<div style="font-size:11px; color:var(--ink-soft); text-align:center;">🍑 이 메뉴, 오늘의 정답입니다.</div>';
+      }
+    }
+
     function renderReceipt(pick, mealKey){
       currentPick = pick;
+      const type = pick.type || "food";
 
       document.getElementById("menuName").textContent = pick.name;
-      document.getElementById("menuTag").textContent = (mealKey === "lunch" ? "점심" : "저녁") + " · " + pick.tag;
+      document.getElementById("menuTag").textContent = mealLabel(mealKey) + " · " + pick.tag;
       document.getElementById("dateLine").textContent = new Date().toLocaleDateString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", weekday:"short" });
 
       const photoEl = document.getElementById("menuPhoto");
       const emojiEl = document.getElementById("menuEmoji");
-      if (pick.image) {
-        photoEl.src = pick.image;
+      const displayImage = pick.image || (type === "video" ? getYoutubeThumbnail(pick.url) : "");
+      if (displayImage) {
+        photoEl.src = displayImage;
         photoEl.alt = pick.name;
         photoEl.style.display = "block";
         emojiEl.style.display = "none";
@@ -684,6 +775,8 @@
         emojiEl.style.display = "block";
         emojiEl.textContent = pick.emoji;
       }
+
+      renderFooter(pick, type);
 
       placeholder.style.display = "none";
       receipt.classList.remove("show");
@@ -706,6 +799,9 @@
       url.searchParams.set("tag", pick.tag);
       url.searchParams.set("emoji", pick.emoji);
       if (pick.image) url.searchParams.set("image", pick.image);
+      if (pick.type) url.searchParams.set("type", pick.type);
+      if (pick.answer) url.searchParams.set("answer", pick.answer);
+      if (pick.url) url.searchParams.set("url", pick.url);
       return url.toString();
     }
 
@@ -714,7 +810,8 @@
       const name = params.get("name");
       if (!name) return false;
 
-      const mealKey = params.get("meal") === "dinner" ? "dinner" : "lunch";
+      const mealParam = params.get("meal");
+      const mealKey = mealParam === "dinner" ? "dinner" : mealParam === "healing" ? "healing" : "lunch";
       meal = mealKey;
       tabs.forEach(t => t.classList.toggle("active", t.dataset.meal === mealKey));
 
@@ -722,7 +819,10 @@
         name,
         tag: params.get("tag") || "",
         emoji: params.get("emoji") || "🍚",
-        image: params.get("image") || ""
+        image: params.get("image") || "",
+        type: params.get("type") || "food",
+        answer: params.get("answer") || "",
+        url: params.get("url") || ""
       }, mealKey);
       return true;
     }
@@ -745,17 +845,29 @@
 
     document.getElementById("kakaoBtn").addEventListener("click", () => {
       if (!currentPick) return;
-      const mealLabel = meal === "lunch" ? "점심" : "저녁";
-      const text = `오늘 ${mealLabel} 메뉴는 "${currentPick.name}" 어때요? ${currentPick.emoji}`;
+      const label = mealLabel(meal);
+      const type = currentPick.type || "food";
+
+      let title, text;
+      if (type === "joke") {
+        title = "오늘의 아재개그";
+        text = `Q. ${currentPick.name} A. ${currentPick.answer} ${currentPick.emoji}`;
+      } else if (type === "video") {
+        title = "오늘의 힐링 영상";
+        text = `"${currentPick.name}" 보러 가요 ${currentPick.emoji}`;
+      } else {
+        title = `오늘의 ${label} 추천: ${currentPick.name}`;
+        text = `오늘 ${label} 메뉴는 "${currentPick.name}" 어때요? ${currentPick.emoji}`;
+      }
       const shareUrl = buildShareUrl(currentPick, meal);
 
       if (kakaoReady) {
         Kakao.Share.sendDefault({
           objectType: "feed",
           content: {
-            title: `오늘의 ${mealLabel} 추천: ${currentPick.name}`,
+            title,
             description: text,
-            imageUrl: currentPick.image || SHARE_FALLBACK_IMAGE,
+            imageUrl: currentPick.image || (type === "video" ? getYoutubeThumbnail(currentPick.url) : "") || SHARE_FALLBACK_IMAGE,
             link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
           },
           buttons: [{
