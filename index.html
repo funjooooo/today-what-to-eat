@@ -234,6 +234,25 @@
   .kakao-btn:disabled{opacity:0.55; cursor:not-allowed;}
   .kakao-btn svg{width:18px; height:18px;}
 
+  .save-btn{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    background:var(--paper-dark);
+    color:var(--ink);
+    border:2px solid var(--ink);
+    border-radius:10px;
+    padding:11px 10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    box-shadow:2px 2px 0 rgba(43,43,40,0.15);
+  }
+  .save-btn:disabled{opacity:0.55; cursor:not-allowed;}
+
   .toast{
     position:fixed;
     bottom:26px;
@@ -439,6 +458,7 @@
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.5 2 10.8c0 2.7 1.8 5.1 4.5 6.5-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.7.1 1.4.1 2.2.1 5.5 0 10-3.5 10-7.8S17.5 3 12 3z"/></svg>
       카카오톡 공유
     </button>
+    <button class="save-btn" id="saveBtn">📸 이미지로 저장</button>
   </div>
 
   <div class="setup-note">
@@ -449,6 +469,7 @@
   <div class="toast" id="toast">링크가 복사됐어요</div>
 
   <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     // ── 여기에 카카오 디벨로퍼스에서 발급받은 JavaScript 키를 넣으세요 ──
     const KAKAO_JS_KEY = "4905c29ed3aaab47be98ade3ff08f2e8";
@@ -573,13 +594,11 @@
       aiWrap.classList.remove("show");
     }
 
-    function draw(){
-      const list = MENUS[meal];
-      const pick = list[Math.floor(Math.random() * list.length)];
+    function renderReceipt(pick, mealKey){
       currentPick = pick;
 
       document.getElementById("menuName").textContent = pick.name;
-      document.getElementById("menuTag").textContent = (meal === "lunch" ? "점심" : "저녁") + " · " + pick.tag;
+      document.getElementById("menuTag").textContent = (mealKey === "lunch" ? "점심" : "저녁") + " · " + pick.tag;
       document.getElementById("dateLine").textContent = new Date().toLocaleDateString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", weekday:"short" });
 
       const photoEl = document.getElementById("menuPhoto");
@@ -603,6 +622,41 @@
       shareRow.style.display = "flex";
     }
 
+    function draw(){
+      const list = MENUS[meal];
+      const pick = list[Math.floor(Math.random() * list.length)];
+      renderReceipt(pick, meal);
+    }
+
+    function buildShareUrl(pick, mealKey){
+      const url = new URL(location.href);
+      url.search = "";
+      url.searchParams.set("meal", mealKey);
+      url.searchParams.set("name", pick.name);
+      url.searchParams.set("tag", pick.tag);
+      url.searchParams.set("emoji", pick.emoji);
+      if (pick.image) url.searchParams.set("image", pick.image);
+      return url.toString();
+    }
+
+    function loadFromShareUrl(){
+      const params = new URLSearchParams(location.search);
+      const name = params.get("name");
+      if (!name) return false;
+
+      const mealKey = params.get("meal") === "dinner" ? "dinner" : "lunch";
+      meal = mealKey;
+      tabs.forEach(t => t.classList.toggle("active", t.dataset.meal === mealKey));
+
+      renderReceipt({
+        name,
+        tag: params.get("tag") || "",
+        emoji: params.get("emoji") || "🍚",
+        image: params.get("image") || ""
+      }, mealKey);
+      return true;
+    }
+
     drawBtn.addEventListener("click", async () => {
       if (drawBtn.disabled) return;
 
@@ -623,6 +677,7 @@
       if (!currentPick) return;
       const mealLabel = meal === "lunch" ? "점심" : "저녁";
       const text = `오늘 ${mealLabel} 메뉴는 "${currentPick.name}" 어때요? ${currentPick.emoji}`;
+      const shareUrl = buildShareUrl(currentPick, meal);
 
       if (kakaoReady) {
         Kakao.Share.sendDefault({
@@ -631,15 +686,15 @@
             title: `오늘의 ${mealLabel} 추천: ${currentPick.name}`,
             description: text,
             imageUrl: currentPick.image || "", // 메뉴에 image가 있으면 자동으로 쓰임
-            link: { mobileWebUrl: location.href, webUrl: location.href }
+            link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
           },
           buttons: [{
-            title: "메뉴 뽑으러 가기",
-            link: { mobileWebUrl: location.href, webUrl: location.href }
+            title: "내 결과 보러 가기",
+            link: { mobileWebUrl: shareUrl, webUrl: shareUrl }
           }]
         });
       } else {
-        const shareText = text + " " + location.href;
+        const shareText = text + " " + shareUrl;
         if (navigator.share) {
           navigator.share({ title: "오늘의 메뉴", text: shareText }).catch(()=>{});
         } else {
@@ -651,6 +706,29 @@
         }
       }
     });
+
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+      if (!currentPick) return;
+      const saveBtn = document.getElementById("saveBtn");
+      const originalLabel = saveBtn.textContent;
+      saveBtn.disabled = true;
+      saveBtn.textContent = "저장 중...";
+
+      try {
+        const canvas = await html2canvas(receipt, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
+        const link = document.createElement("a");
+        link.download = `오늘의메뉴_${currentPick.name}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      } catch (e) {
+        showToast("이미지 저장에 실패했어요");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalLabel;
+      }
+    });
+
+    loadFromShareUrl();
   </script>
 </body>
 </html>
