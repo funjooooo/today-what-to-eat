@@ -908,6 +908,27 @@
       }
     });
 
+    function toImageProxy(url){
+      return `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+    }
+
+    // 외부 이미지를 base64 data URL로 미리 바꿔둔다.
+    // html2canvas는 캡처 시 이미지를 자체적으로 다시 불러오는데, 그때 CORS 헤더가
+    // 없는 외부 이미지는 캔버스에 그려지지 않고(빈 원) 로딩 지연으로 레이아웃
+    // 높이 측정도 어긋난다(여백/저해상도 문제). data URL은 즉시·동일 출처로
+    // 로드되므로 두 문제를 한 번에 없앤다.
+    async function toDataUrl(url){
+      const resp = await fetch(toImageProxy(url));
+      if (!resp.ok) throw new Error("proxy fetch failed: " + resp.status);
+      const blob = await resp.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
     document.getElementById("saveBtn").addEventListener("click", async () => {
       if (!currentPick) return;
       const saveBtn = document.getElementById("saveBtn");
@@ -915,8 +936,38 @@
       saveBtn.disabled = true;
       saveBtn.textContent = "저장 중...";
 
+      const photoEl = document.getElementById("menuPhoto");
+      const emojiEl = document.getElementById("menuEmoji");
+      const isPhotoShown = photoEl.style.display !== "none" && photoEl.src;
+      const originalSrc = photoEl.src;
+      const originalEmojiDisplay = emojiEl.style.display;
+      let swapped = false;
+      let hiddenPhotoForCapture = false;
+
       try {
-        const canvas = await html2canvas(receipt, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
+        if (isPhotoShown) {
+          try {
+            const dataUrl = await toDataUrl(originalSrc);
+            photoEl.src = dataUrl;
+            await new Promise((resolve) => {
+              if (photoEl.complete) return resolve();
+              photoEl.onload = resolve;
+              photoEl.onerror = resolve;
+            });
+            swapped = true;
+          } catch (e) {
+            // 프록시로도 못 가져오는 이미지면(호스트 차단 등) 빈 원 대신 이모지로 대체
+            photoEl.style.display = "none";
+            emojiEl.style.display = "block";
+            hiddenPhotoForCapture = true;
+          }
+        }
+
+        const canvas = await html2canvas(receipt, {
+          backgroundColor: "#ffffff",
+          scale: 3,
+          useCORS: true
+        });
         const link = document.createElement("a");
         link.download = `오늘의메뉴_${currentPick.name}.png`;
         link.href = canvas.toDataURL("image/png");
@@ -924,6 +975,11 @@
       } catch (e) {
         showToast("이미지 저장에 실패했어요");
       } finally {
+        if (swapped) photoEl.src = originalSrc;
+        if (hiddenPhotoForCapture) {
+          photoEl.style.display = "block";
+          emojiEl.style.display = originalEmojiDisplay;
+        }
         saveBtn.disabled = false;
         saveBtn.textContent = originalLabel;
       }
