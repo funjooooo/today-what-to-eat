@@ -936,6 +936,11 @@
       saveBtn.disabled = true;
       saveBtn.textContent = "저장 중...";
 
+      // 영수증 등장 애니메이션(.5s)이 끝나기 전에 캡처하면 scaleY가 덜 끝난
+      // 상태로 찍혀 이미지가 눌리고 늘어난 것처럼 저장된다. 애니메이션 종료를
+      // 기다렸다가 캡처한다.
+      await sleep(550);
+
       const photoEl = document.getElementById("menuPhoto");
       const emojiEl = document.getElementById("menuEmoji");
       const isPhotoShown = photoEl.style.display !== "none" && photoEl.src;
