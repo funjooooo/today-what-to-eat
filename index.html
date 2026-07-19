@@ -294,25 +294,6 @@
   .kakao-btn:disabled{opacity:0.55; cursor:not-allowed;}
   .kakao-btn svg{width:18px; height:18px;}
 
-  .save-btn{
-    flex:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    background:var(--paper-dark);
-    color:var(--ink);
-    border:2px solid var(--ink);
-    border-radius:10px;
-    padding:11px 10px;
-    font-family:'IBM Plex Mono', monospace;
-    font-weight:600;
-    font-size:14px;
-    cursor:pointer;
-    box-shadow:2px 2px 0 rgba(43,43,40,0.15);
-  }
-  .save-btn:disabled{opacity:0.55; cursor:not-allowed;}
-
   .toast{
     position:fixed;
     bottom:26px;
@@ -565,7 +546,6 @@
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.5 2 10.8c0 2.7 1.8 5.1 4.5 6.5-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.7-2.5.7.1 1.4.1 2.2.1 5.5 0 10-3.5 10-7.8S17.5 3 12 3z"/></svg>
       카카오톡 공유
     </button>
-    <button class="save-btn" id="saveBtn">📸 이미지로 저장</button>
   </div>
 
   <div class="setup-note">
@@ -575,7 +555,6 @@
   <div class="toast" id="toast">링크가 복사됐어요</div>
 
   <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     // ── 여기에 카카오 디벨로퍼스에서 발급받은 JavaScript 키를 넣으세요 ──
     const KAKAO_JS_KEY = "4905c29ed3aaab47be98ade3ff08f2e8";
@@ -915,88 +894,6 @@
             showToast("카카오 키를 등록하면 공유가 가능해요");
           });
         }
-      }
-    });
-
-    function toImageProxy(url){
-      return `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
-    }
-
-    // 외부 이미지를 base64 data URL로 미리 바꿔둔다.
-    // html2canvas는 캡처 시 이미지를 자체적으로 다시 불러오는데, 그때 CORS 헤더가
-    // 없는 외부 이미지는 캔버스에 그려지지 않고(빈 원) 로딩 지연으로 레이아웃
-    // 높이 측정도 어긋난다(여백/저해상도 문제). data URL은 즉시·동일 출처로
-    // 로드되므로 두 문제를 한 번에 없앤다.
-    async function toDataUrl(url){
-      const resp = await fetch(toImageProxy(url));
-      if (!resp.ok) throw new Error("proxy fetch failed: " + resp.status);
-      const blob = await resp.blob();
-      return await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    }
-
-    document.getElementById("saveBtn").addEventListener("click", async () => {
-      if (!currentPick) return;
-      const saveBtn = document.getElementById("saveBtn");
-      const originalLabel = saveBtn.textContent;
-      saveBtn.disabled = true;
-      saveBtn.textContent = "저장 중...";
-
-      // 영수증 등장 애니메이션(.5s)이 끝나기 전에 캡처하면 scaleY가 덜 끝난
-      // 상태로 찍혀 이미지가 눌리고 늘어난 것처럼 저장된다. 애니메이션 종료를
-      // 기다렸다가 캡처한다.
-      await sleep(550);
-
-      const photoEl = document.getElementById("menuPhoto");
-      const emojiEl = document.getElementById("menuEmoji");
-      const isPhotoShown = photoEl.style.display !== "none" && photoEl.src;
-      const originalSrc = photoEl.src;
-      const originalEmojiDisplay = emojiEl.style.display;
-      let swapped = false;
-      let hiddenPhotoForCapture = false;
-
-      try {
-        if (isPhotoShown) {
-          try {
-            const dataUrl = await toDataUrl(originalSrc);
-            photoEl.src = dataUrl;
-            await new Promise((resolve) => {
-              if (photoEl.complete) return resolve();
-              photoEl.onload = resolve;
-              photoEl.onerror = resolve;
-            });
-            swapped = true;
-          } catch (e) {
-            // 프록시로도 못 가져오는 이미지면(호스트 차단 등) 빈 원 대신 이모지로 대체
-            photoEl.style.display = "none";
-            emojiEl.style.display = "block";
-            hiddenPhotoForCapture = true;
-          }
-        }
-
-        const canvas = await html2canvas(receipt, {
-          backgroundColor: "#ffffff",
-          scale: 3,
-          useCORS: true
-        });
-        const link = document.createElement("a");
-        link.download = `오늘의메뉴_${currentPick.name}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      } catch (e) {
-        showToast("이미지 저장에 실패했어요");
-      } finally {
-        if (swapped) photoEl.src = originalSrc;
-        if (hiddenPhotoForCapture) {
-          photoEl.style.display = "block";
-          emojiEl.style.display = originalEmojiDisplay;
-        }
-        saveBtn.disabled = false;
-        saveBtn.textContent = originalLabel;
       }
     });
 
